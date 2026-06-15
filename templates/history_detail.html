@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block title %}Prediction Detail — IoMT Shield{% endblock %}
+{% block extra_head %}
+<style>
+.page{padding:2.5rem 2rem}
+.max-w{max-width:1000px;margin:0 auto}
+.back-link{display:inline-flex;align-items:center;gap:8px;color:var(--text2);text-decoration:none;font-size:0.9rem;margin-bottom:1.5rem;transition:color 0.2s}
+.back-link:hover{color:var(--accent)}
+
+/* HERO RESULT CARD */
+.result-hero{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:2.5rem;margin-bottom:1.5rem;position:relative;overflow:hidden}
+.result-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--attack-col,var(--accent)),transparent)}
+.result-hero-inner{display:grid;grid-template-columns:1fr auto;gap:2rem;align-items:center}
+.attack-display{display:flex;align-items:center;gap:16px}
+.attack-display .big-icon{width:70px;height:70px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:1.8rem;flex-shrink:0}
+.attack-display .attack-title{font-family:'Space Mono',monospace;font-size:2rem;font-weight:700;line-height:1;margin-bottom:4px}
+.attack-display .attack-sub{color:var(--text2);font-size:0.9rem}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:5px 14px;border-radius:50px;font-size:0.82rem;font-weight:600;margin-top:6px}
+
+.gauge-mini{display:flex;flex-direction:column;align-items:center;text-align:center;flex-shrink:0}
+.gauge-mini .score{font-family:'Space Mono',monospace;font-size:3rem;font-weight:700;line-height:1}
+.gauge-mini .score-sub{font-size:0.78rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+
+/* META ROW */
+.meta-row{display:flex;gap:2rem;margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--border);flex-wrap:wrap}
+.meta-item .meta-label{font-size:0.72rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px}
+.meta-item .meta-val{font-size:0.9rem;font-weight:600}
+
+/* DESC CARD */
+.desc-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.5rem;margin-bottom:1.5rem;border-left:4px solid var(--accent)}
+.desc-card p{color:var(--text2);font-size:0.92rem;line-height:1.8}
+
+/* TWO COLS */
+.two-cols{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.panel-head{padding:1rem 1.3rem;border-bottom:1px solid var(--border);font-size:0.9rem;font-weight:700;display:flex;align-items:center;gap:8px}
+.panel-head i{color:var(--accent)}
+.panel-body{padding:1.2rem 1.3rem}
+.rec-item{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;font-size:0.88rem;color:var(--text2);line-height:1.5}
+.rec-item i{margin-top:2px;flex-shrink:0;font-size:0.8rem}
+.rec-item:last-child{margin-bottom:0}
+
+/* PARAMS TABLE */
+.params-panel{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.params-table{width:100%;border-collapse:collapse}
+.params-table th{font-size:0.75rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;padding:10px 1.3rem;background:var(--bg2);text-align:left;border-bottom:1px solid var(--border);font-weight:600}
+.params-table td{padding:10px 1.3rem;font-size:0.88rem;border-bottom:1px solid rgba(30,51,84,0.5)}
+.params-table tr:last-child td{border-bottom:none}
+.params-table td:first-child{color:var(--text2)}
+.params-table td:last-child{font-family:'Space Mono',monospace;text-align:right;color:var(--accent)}
+.params-table tr:hover td{background:rgba(0,212,255,0.02)}
+
+.badge-safe{background:rgba(0,229,160,0.1);color:#00e5a0;border:1px solid rgba(0,229,160,0.3)}
+.badge-critical{background:rgba(255,45,85,0.1);color:#ff2d55;border:1px solid rgba(255,45,85,0.3)}
+.badge-high{background:rgba(255,159,10,0.1);color:#ff9f0a;border:1px solid rgba(255,159,10,0.3)}
+.badge-medium{background:rgba(255,214,10,0.1);color:#ffd60a;border:1px solid rgba(255,214,10,0.3)}
+
+@media(max-width:768px){.result-hero-inner{grid-template-columns:1fr}.two-cols{grid-template-columns:1fr}}
+</style>
+{% endblock %}
+{% block content %}
+{% set icons = {'Normal':'fa-check-circle','DoS':'fa-bomb','MITM':'fa-user-secret','Replay':'fa-redo','Spoofing':'fa-mask','Data Falsification':'fa-database'} %}
+{% set col_map = {'Safe':'#00e5a0','Critical':'#ff2d55','High':'#ff9f0a','Medium':'#ffd60a'} %}
+{% set col = col_map.get(pred.risk_level, '#00e5a0') %}
+{% set lvl = pred.risk_level.lower() %}
+
+<div class="page">
+<div class="max-w">
+  <a href="{{ url_for('history') }}" class="back-link"><i class="fas fa-arrow-left"></i> Back to History</a>
+
+  <!-- RESULT HERO -->
+  <div class="result-hero" style="--attack-col:{{ col }}">
+    <div class="result-hero-inner">
+      <div>
+        <div class="attack-display">
+          <div class="big-icon" style="background:{{ col }}1a;color:{{ col }}">
+            <i class="fas {{ icons.get(pred.attack,'fa-question') }}"></i>
+          </div>
+          <div>
+            <div class="attack-title" style="color:{{ col }}">{{ pred.attack }}</div>
+            <div class="attack-sub">{{ pred.device_name }}</div>
+            <span class="badge badge-{{ lvl }}">{{ pred.risk_level }} Risk</span>
+          </div>
+        </div>
+        <div class="meta-row">
+          <div class="meta-item">
+            <div class="meta-label">Analysis Date</div>
+            <div class="meta-val">{{ pred.timestamp[:10] }}</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Time</div>
+            <div class="meta-val">{{ pred.timestamp[11:19] }}</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Prediction ID</div>
+            <div class="meta-val" style="font-family:'Space Mono',monospace;font-size:0.78rem">{{ pred.id[:16] }}…</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Model Confidence</div>
+            <div class="meta-val" style="color:var(--accent)">
+              {% if pred.confidence %}{{ pred.confidence }}%{% else %}N/A{% endif %}
+            </div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">ML Engine</div>
+            <div class="meta-val" style="color:{% if pred.ml_available %}var(--green){% else %}var(--orange){% endif %}">
+              {% if pred.ml_available %}Active{% else %}Simulation{% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="gauge-mini">
+        <div class="score" style="color:{{ col }}">{{ pred.risk_score }}</div>
+        <div style="font-size:0.85rem;color:{{ col }};font-weight:700;margin-top:4px">{{ pred.risk_level }}</div>
+        <div class="score-sub">Risk Score</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DESCRIPTION -->
+  <div class="desc-card">
+    <p>{{ pred.recommendations.desc }}</p>
+  </div>
+
+  <!-- RECOMMENDATIONS -->
+  <div class="two-cols">
+    <div class="panel">
+      <div class="panel-head"><i class="fas fa-tasks"></i> Immediate Actions</div>
+      <div class="panel-body">
+        {% for action in pred.recommendations.actions %}
+        <div class="rec-item"><i class="fas fa-arrow-right" style="color:var(--accent)"></i><span>{{ action }}</span></div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><i class="fas fa-shield-alt"></i> Security Precautions</div>
+      <div class="panel-body">
+        {% for pre in pred.recommendations.precautions %}
+        <div class="rec-item"><i class="fas fa-shield-alt" style="color:var(--green)"></i><span>{{ pre }}</span></div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- PROBABILITY DISTRIBUTION -->
+  {% if pred.proba_dict %}
+  {% set class_colors = {'Normal':'#00e5a0','DoS':'#ff2d55','MITM':'#ff2d55','Replay':'#ff9f0a','Spoofing':'#ff9f0a','Data Falsification':'#ffd60a'} %}
+  <div class="params-panel" style="margin-bottom:1.5rem">
+    <div class="panel-head" style="padding:1rem 1.3rem;border-bottom:1px solid var(--border);font-size:0.9rem;font-weight:700;display:flex;align-items:center;gap:8px;color:var(--text)">
+      <i class="fas fa-chart-bar" style="color:var(--accent)"></i> Model Probability Distribution
+    </div>
+    <div style="padding:1.2rem 1.5rem">
+      {% for cls in ['Normal','DoS','MITM','Replay','Spoofing','Data Falsification'] %}
+      {% set prob = pred.proba_dict.get(cls, 0) %}
+      {% set pct = (prob * 100) | round(1) %}
+      {% set bar_w = (prob * 100) | round(1) %}
+      {% set c = class_colors.get(cls, '#8bb8cc') %}
+      {% set active = cls == pred.attack %}
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <span style="width:130px;font-size:0.82rem;color:{{ c if active else 'var(--text2)' }};font-weight:{{ '700' if active else '400' }};flex-shrink:0">{{ cls }}</span>
+        <div style="flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:{{ bar_w }}%;background:{{ c }};border-radius:4px;opacity:{{ '1' if active else '0.4' }}"></div>
+        </div>
+        <span style="font-size:0.82rem;color:{{ c if active else 'var(--text3)' }};font-weight:{{ '700' if active else '400' }};width:44px;text-align:right">{{ pct }}%</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- INPUT PARAMETERS -->
+  <div class="params-panel">
+    <div class="panel-head" style="padding:1rem 1.3rem;border-bottom:1px solid var(--border);font-size:0.9rem;font-weight:700;display:flex;align-items:center;gap:8px;color:var(--text)">
+      <i class="fas fa-list-alt" style="color:var(--accent)"></i> Input Parameters
+    </div>
+    {% set labels = {
+      'flow_duration_ms':'Flow Duration (ms)',
+      'packet_rate':'Packet Rate (pps)',
+      'byte_rate':'Byte Rate (bps)',
+      'avg_packet_size':'Avg Packet Size (bytes)',
+      'packet_size_variance':'Packet Size Variance',
+      'inter_arrival_time_mean':'IAT Mean (ms)',
+      'inter_arrival_time_std':'IAT Std Dev',
+      'payload_entropy':'Payload Entropy',
+      'tcp_flag_count':'TCP Flag Count',
+      'retransmission_rate':'Retransmission Rate',
+      'flow_direction_ratio':'Flow Direction Ratio',
+      'connection_reset_count':'Connection Reset Count',
+      'session_request_rate':'Session Request Rate',
+      'device_type':'Device Type ID'
+    } %}
+    <table class="params-table">
+      <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
+      <tbody>
+      {% for k, v in pred.input_data.items() %}
+      <tr>
+        <td>{{ labels.get(k, k) }}</td>
+        <td>{{ v }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+</div>
+{% endblock %}

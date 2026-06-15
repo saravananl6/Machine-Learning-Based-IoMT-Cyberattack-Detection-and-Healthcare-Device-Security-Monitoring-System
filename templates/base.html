@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>{% block title %}IoMT Shield{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<style>
+:root{
+  --bg:#060d1a;
+  --bg2:#0b1628;
+  --bg3:#0f1e35;
+  --card:#111d2e;
+  --card2:#162438;
+  --border:#1e3354;
+  --accent:#00d4ff;
+  --accent2:#0099cc;
+  --green:#00e5a0;
+  --red:#ff2d55;
+  --orange:#ff9f0a;
+  --yellow:#ffd60a;
+  --text:#e8f4f8;
+  --text2:#8bb8cc;
+  --text3:#4a7a9b;
+  --glow:0 0 20px rgba(0,212,255,0.3);
+  --glow2:0 0 40px rgba(0,212,255,0.15);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 50% at 50% -20%,rgba(0,212,255,0.08),transparent);pointer-events:none;z-index:0}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:100;background:rgba(6,13,26,0.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:64px}
+.nav-brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+.nav-logo{width:38px;height:38px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:var(--glow)}
+.nav-title{font-family:'Space Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--text);letter-spacing:0.5px}
+.nav-title span{color:var(--accent)}
+.nav-links{display:flex;align-items:center;gap:6px}
+.nav-links a{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:8px;text-decoration:none;color:var(--text2);font-size:0.9rem;font-weight:500;transition:all 0.2s}
+.nav-links a:hover,.nav-links a.active{background:rgba(0,212,255,0.1);color:var(--accent)}
+.nav-links a i{font-size:0.85rem}
+.nav-user{display:flex;align-items:center;gap:10px}
+.nav-avatar{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),#00a0cc);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;color:#000}
+.nav-username{font-size:0.9rem;color:var(--text2);font-weight:500}
+.btn-logout{padding:7px 14px;border-radius:8px;background:rgba(255,45,85,0.1);border:1px solid rgba(255,45,85,0.3);color:#ff2d55;font-size:0.85rem;font-weight:600;cursor:pointer;text-decoration:none;transition:all 0.2s}
+.btn-logout:hover{background:rgba(255,45,85,0.2)}
+
+/* MAIN */
+main{position:relative;z-index:1}
+.container{max-width:1200px;margin:0 auto;padding:2rem}
+
+/* FLASH */
+.flash-container{position:fixed;top:80px;right:20px;z-index:999;display:flex;flex-direction:column;gap:8px}
+.flash{padding:12px 20px;border-radius:10px;font-size:0.9rem;font-weight:500;animation:slideIn 0.3s ease;display:flex;align-items:center;gap:10px;max-width:350px}
+.flash.success{background:rgba(0,229,160,0.15);border:1px solid rgba(0,229,160,0.4);color:var(--green)}
+.flash.error{background:rgba(255,45,85,0.15);border:1px solid rgba(255,45,85,0.4);color:var(--red)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--accent2)}
+</style>
+{% block extra_head %}{% endblock %}
+</head>
+<body>
+{% if session.get('user_id') %}
+<nav>
+  <a href="{{ url_for('dashboard') }}" class="nav-brand">
+    <div class="nav-logo">🛡️</div>
+    <span class="nav-title">IoMT<span>Shield</span></span>
+  </a>
+  <div class="nav-links">
+    <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint=='dashboard' %}active{% endif %}"><i class="fas fa-chart-pie"></i> Dashboard</a>
+    <a href="{{ url_for('predict') }}" class="{% if request.endpoint=='predict' %}active{% endif %}"><i class="fas fa-brain"></i> Predict</a>
+    <a href="{{ url_for('stream_page') }}" class="{% if request.endpoint in ['stream_page','stream_report'] %}active{% endif %}"><i class="fas fa-broadcast-tower"></i> Live Stream</a>
+    <a href="{{ url_for('history') }}" class="{% if request.endpoint in ['history','history_detail'] %}active{% endif %}"><i class="fas fa-history"></i> History</a>
+  </div>
+  <div class="nav-user">
+    <div class="nav-avatar">{{ session.get('name','?')[0].upper() }}</div>
+    <span class="nav-username">{{ session.get('name') }}</span>
+    <a href="{{ url_for('logout') }}" class="btn-logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+  </div>
+</nav>
+{% endif %}
+
+<div class="flash-container">
+{% with messages = get_flashed_messages(with_categories=True) %}
+  {% for cat, msg in messages %}
+    <div class="flash {{ cat }}">
+      <i class="fas {% if cat=='success' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}"></i>
+      {{ msg }}
+    </div>
+  {% endfor %}
+{% endwith %}
+</div>
+
+<main>{% block content %}{% endblock %}</main>
+<script>
+setTimeout(()=>{document.querySelectorAll('.flash').forEach(f=>f.style.opacity='0')},4000)
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

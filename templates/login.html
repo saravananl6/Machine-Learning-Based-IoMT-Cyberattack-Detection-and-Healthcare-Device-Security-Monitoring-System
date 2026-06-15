@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Login — IoMT Shield{% endblock %}
+{% block extra_head %}
+<style>
+.auth-page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:4rem 1rem;position:relative;overflow:hidden}
+.auth-bg{position:absolute;inset:0}
+.auth-bg-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,212,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.03) 1px,transparent 1px);background-size:40px 40px}
+.auth-orb{position:absolute;border-radius:50%;filter:blur(100px)}
+.auth-orb1{width:600px;height:600px;background:radial-gradient(circle,rgba(0,212,255,0.07),transparent);top:-200px;left:-200px}
+.auth-orb2{width:400px;height:400px;background:radial-gradient(circle,rgba(0,229,160,0.05),transparent);bottom:-100px;right:-100px}
+.auth-card{position:relative;z-index:1;background:var(--card);border:1px solid var(--border);border-radius:24px;padding:3rem;width:100%;max-width:440px;box-shadow:0 40px 80px rgba(0,0,0,0.5)}
+.auth-card::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+.auth-logo{text-align:center;margin-bottom:2rem}
+.auth-logo .icon{width:64px;height:64px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:18px;display:inline-flex;align-items:center;justify-content:center;font-size:1.8rem;margin-bottom:1rem;box-shadow:0 0 30px rgba(0,212,255,0.4)}
+.auth-logo h1{font-family:'Space Mono',monospace;font-size:1.5rem;font-weight:700}
+.auth-logo h1 span{color:var(--accent)}
+.auth-logo p{color:var(--text2);font-size:0.9rem;margin-top:4px}
+.form-group{margin-bottom:1.2rem}
+.form-label{display:block;font-size:0.85rem;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
+.form-input{width:100%;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:0.95rem;font-family:'Outfit',sans-serif;transition:all 0.2s;outline:none}
+.form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,255,0.1)}
+.form-input::placeholder{color:var(--text3)}
+.input-icon{position:relative}
+.input-icon i{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:0.9rem}
+.input-icon .form-input{padding-left:42px}
+.btn-submit{width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:12px;color:#000;font-size:1rem;font-weight:700;cursor:pointer;transition:all 0.3s;margin-top:0.5rem;font-family:'Outfit',sans-serif;display:flex;align-items:center;justify-content:center;gap:10px}
+.btn-submit:hover{transform:translateY(-1px);box-shadow:0 0 30px rgba(0,212,255,0.5)}
+.auth-footer{text-align:center;margin-top:1.5rem;font-size:0.9rem;color:var(--text2)}
+.auth-footer a{color:var(--accent);text-decoration:none;font-weight:600}
+.auth-footer a:hover{text-decoration:underline}
+</style>
+{% endblock %}
+{% block content %}
+<div class="auth-page">
+  <div class="auth-bg">
+    <div class="auth-bg-grid"></div>
+    <div class="auth-orb auth-orb1"></div>
+    <div class="auth-orb auth-orb2"></div>
+  </div>
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="icon">🛡️</div>
+      <h1>IoMT<span>Shield</span></h1>
+      <p>Medical Admin Portal</p>
+    </div>
+    <form method="POST">
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <div class="input-icon">
+          <i class="fas fa-user"></i>
+          <input name="username" class="form-input" type="text" placeholder="Your username" required/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div class="input-icon">
+          <i class="fas fa-lock"></i>
+          <input name="password" class="form-input" type="password" placeholder="Your password" required/>
+        </div>
+      </div>
+      <button type="submit" class="btn-submit"><i class="fas fa-sign-in-alt"></i> Sign In</button>
+    </form>
+    <div class="auth-footer">Don't have an account? <a href="{{ url_for('register') }}">Register here</a></div>
+  </div>
+</div>
+{% endblock %}

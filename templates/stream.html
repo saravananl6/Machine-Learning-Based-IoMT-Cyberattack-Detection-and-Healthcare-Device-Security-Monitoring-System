@@ -1,0 +1,670 @@
+{% extends "base.html" %}
+{% block title %}Live Stream — IoMT Shield{% endblock %}
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--pulse:#00d4ff}
+.page{padding:2rem}
+.max-w{max-width:1300px;margin:0 auto}
+.page-header{margin-bottom:1.8rem}
+.page-header h1{font-family:'Space Mono',monospace;font-size:1.8rem;font-weight:700}
+.page-header h1 span{color:var(--accent)}
+.page-header p{color:var(--text2);margin-top:4px}
+
+/* ── SETUP CARD ── */
+.setup-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:2rem;margin-bottom:1.5rem}
+.setup-grid{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:1rem;align-items:end}
+.form-label{display:block;font-size:0.78rem;font-weight:600;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
+.form-select,.form-input{width:100%;padding:11px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:0.92rem;font-family:'Outfit',sans-serif;outline:none;transition:all 0.2s}
+.form-select{-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234a7a9b' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+.form-select option{background:var(--bg2)}
+.form-select:focus,.form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,255,0.1)}
+
+.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:1.5rem;text-align:center;cursor:pointer;transition:all 0.3s;position:relative;background:var(--bg2)}
+.upload-zone:hover,.upload-zone.dragover{border-color:var(--accent);background:rgba(0,212,255,0.05)}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-zone i{font-size:1.8rem;color:var(--text3);display:block;margin-bottom:8px}
+.upload-zone .uz-text{font-size:0.88rem;color:var(--text2)}
+.upload-zone .uz-text strong{color:var(--accent)}
+.upload-zone .uz-sub{font-size:0.78rem;color:var(--text3);margin-top:4px}
+
+.btn-simulate{padding:12px 28px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:#000;font-weight:700;font-size:0.95rem;cursor:pointer;font-family:'Outfit',sans-serif;display:inline-flex;align-items:center;gap:8px;transition:all 0.3s;white-space:nowrap}
+.btn-simulate:hover{box-shadow:0 0 25px rgba(0,212,255,0.5);transform:translateY(-1px)}
+.btn-simulate:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+.btn-stop{padding:12px 24px;background:rgba(255,45,85,0.12);border:1px solid rgba(255,45,85,0.4);border-radius:10px;color:#ff2d55;font-weight:700;font-size:0.95rem;cursor:pointer;font-family:'Outfit',sans-serif;display:none;align-items:center;gap:8px;transition:all 0.2s}
+.btn-stop:hover{background:rgba(255,45,85,0.25)}
+.btn-stop.visible{display:inline-flex}
+
+.file-info{margin-top:10px;font-size:0.82rem;color:var(--green);display:none;align-items:center;gap:6px}
+.file-info.visible{display:flex}
+
+/* ── STATUS BAR ── */
+.status-bar{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1rem 1.5rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:2rem;flex-wrap:wrap}
+.status-dot{width:10px;height:10px;border-radius:50%;background:var(--text3);flex-shrink:0}
+.status-dot.running{background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 1s infinite}
+.status-dot.stopped{background:var(--orange)}
+.status-dot.done{background:var(--accent)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.status-label{font-size:0.88rem;font-weight:600;color:var(--text2)}
+.status-label span{color:var(--text)}
+.progress-wrap{flex:1;min-width:200px}
+.progress-bar-outer{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-bar-inner{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:3px;transition:width 0.5s;width:0%}
+.progress-pct{font-size:0.78rem;color:var(--text3);margin-top:4px;text-align:right}
+
+/* ── LIVE INTERVAL CONTROL ── */
+.interval-live{display:flex;align-items:center;gap:10px;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.2);border-radius:10px;padding:7px 14px;flex-shrink:0}
+.interval-live label{font-size:0.78rem;font-weight:600;color:var(--accent);white-space:nowrap;text-transform:uppercase;letter-spacing:0.5px}
+.interval-slider{-webkit-appearance:none;width:100px;height:4px;border-radius:2px;background:var(--border);outline:none;cursor:pointer}
+.interval-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--accent);cursor:pointer;box-shadow:0 0 6px rgba(0,212,255,0.5);transition:transform 0.15s}
+.interval-slider::-webkit-slider-thumb:hover{transform:scale(1.2)}
+.interval-num{width:44px;padding:4px 6px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.82rem;font-family:'Space Mono',monospace;text-align:center;outline:none}
+.interval-num:focus{border-color:var(--accent)}
+.interval-updated{font-size:0.74rem;color:var(--green);opacity:0;transition:opacity 0.3s;white-space:nowrap}
+.interval-updated.show{opacity:1}
+
+/* ── MAIN GRID ── */
+.stream-grid{display:grid;grid-template-columns:320px 1fr;gap:1.5rem;margin-bottom:1.5rem}
+
+/* ── GAUGE LIVE ── */
+.gauge-panel{background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+.panel-head{padding:1rem 1.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-size:0.9rem;font-weight:700}
+.panel-head i{color:var(--accent)}
+.gauge-body{padding:1.4rem;display:flex;flex-direction:column;align-items:center}
+#liveGaugeSvg{display:block}
+.attack-label{font-family:'Space Mono',monospace;font-size:1.4rem;font-weight:700;text-align:center;margin-top:0.5rem}
+.attack-sub{font-size:0.82rem;color:var(--text2);text-align:center;margin-top:2px}
+.conf-pill{margin-top:10px;padding:5px 14px;border-radius:50px;border:1px solid rgba(0,212,255,0.25);background:rgba(0,212,255,0.07);font-size:0.8rem;color:var(--accent);font-weight:600}
+
+/* Current row card */
+.cur-row{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:0.9rem 1rem;margin-top:1rem;width:100%}
+.cur-row .cr-label{font-size:0.72rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px}
+.cur-row .cr-val{font-family:'Space Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--accent)}
+
+/* Proba bars */
+.proba-panel{margin-top:1rem;width:100%}
+.proba-title{font-size:0.72rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px}
+.pb-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.pb-name{width:100px;font-size:0.76rem;color:var(--text2);flex-shrink:0}
+.pb-bar-wrap{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.pb-bar{height:100%;border-radius:3px;transition:width 0.6s cubic-bezier(0.4,0,0.2,1)}
+.pb-pct{width:36px;text-align:right;font-size:0.76rem;color:var(--text3)}
+
+/* ── CHARTS PANEL ── */
+.charts-panel{background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+.charts-body{padding:1.4rem;display:flex;flex-direction:column;gap:1.5rem}
+.chart-wrap{position:relative;height:210px}
+.chart-label{font-size:0.78rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.chart-label i{color:var(--accent)}
+
+/* ── LOG FEED ── */
+.log-panel{background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;margin-bottom:1.5rem}
+.log-body{padding:0;max-height:240px;overflow-y:auto}
+.log-table{width:100%;border-collapse:collapse;font-size:0.82rem}
+.log-table th{position:sticky;top:0;background:var(--bg2);padding:8px 12px;text-align:left;font-size:0.72rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;border-bottom:1px solid var(--border);z-index:1}
+.log-table td{padding:8px 12px;border-bottom:1px solid rgba(30,51,84,0.4);vertical-align:middle}
+.log-table tr:last-child td{border-bottom:none}
+.log-table tr.anomaly td{background:rgba(255,45,85,0.04)}
+.log-table tr.new-row{animation:rowPulse 0.5s ease}
+@keyframes rowPulse{0%{background:rgba(0,212,255,0.15)}100%{background:transparent}}
+.badge-sm{padding:3px 9px;border-radius:50px;font-size:0.74rem;font-weight:600;display:inline-block}
+
+/* ── REPORTS SECTION ── */
+.reports-section{background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+.rep-row{display:flex;align-items:center;gap:1.2rem;padding:1rem 1.4rem;border-bottom:1px solid rgba(30,51,84,0.5);transition:background 0.2s}
+.rep-row:last-child{border-bottom:none}
+.rep-row:hover{background:rgba(0,212,255,0.03)}
+.rep-icon{width:40px;height:40px;border-radius:10px;background:rgba(0,212,255,0.1);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rep-info{flex:1}
+.rep-info .rn{font-size:0.9rem;font-weight:600}
+.rep-info .rs{font-size:0.8rem;color:var(--text2);margin-top:2px}
+.rep-actions{display:flex;gap:8px}
+.rep-btn{padding:6px 14px;border-radius:8px;font-size:0.8rem;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:all 0.2s;font-family:'Outfit',sans-serif;border:none}
+.rep-btn-view{background:rgba(0,212,255,0.1);color:var(--accent);border:1px solid rgba(0,212,255,0.25)}
+.rep-btn-view:hover{background:rgba(0,212,255,0.2)}
+.rep-btn-dl{background:rgba(0,229,160,0.1);color:var(--green);border:1px solid rgba(0,229,160,0.25)}
+.rep-btn-dl:hover{background:rgba(0,229,160,0.2)}
+
+/* Alert toast */
+.anomaly-toast{position:fixed;bottom:24px;right:24px;background:#ff2d55;color:#fff;border-radius:14px;padding:14px 20px;font-weight:700;font-size:0.92rem;z-index:9999;display:none;align-items:center;gap:10px;box-shadow:0 8px 30px rgba(255,45,85,0.5);animation:toastIn 0.3s ease}
+@keyframes toastIn{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.anomaly-toast.show{display:flex}
+
+@media(max-width:1000px){.stream-grid{grid-template-columns:1fr}.setup-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.setup-grid{grid-template-columns:1fr}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page">
+<div class="max-w">
+  <div class="page-header">
+    <h1>Live Stream <span>Prediction</span></h1>
+    <p>Upload device log file and simulate real-time IoMT attack detection</p>
+  </div>
+
+  <!-- SETUP -->
+  <div class="setup-card">
+    <div style="font-size:0.9rem;font-weight:700;margin-bottom:1.2rem;display:flex;align-items:center;gap:8px">
+      <i class="fas fa-cog" style="color:var(--accent)"></i> Simulation Setup
+    </div>
+    <div class="setup-grid">
+      <div>
+        <label class="form-label">Medical Device</label>
+        <select class="form-select" id="deviceSelect">
+          <option value="1">ECG Monitor</option>
+          <option value="2" selected>Blood Pressure Monitor</option>
+          <option value="3">Pulse Oximeter</option>
+          <option value="4">Insulin Pump</option>
+          <option value="5">Ventilator</option>
+          <option value="6">Smart Infusion Pump</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Prediction Interval (seconds)</label>
+        <input class="form-input" type="number" id="intervalInput" value="2" min="0.5" max="60" step="0.5"/>
+      </div>
+      <div>
+        <label class="form-label">Log CSV File</label>
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" id="fileInput" accept=".csv"/>
+          <i class="fas fa-cloud-upload-alt"></i>
+          <div class="uz-text">Drop CSV or <strong>click to browse</strong></div>
+          <div class="uz-sub">Columns: flow_duration_ms, packet_rate, byte_rate…</div>
+        </div>
+        <div class="file-info" id="fileInfo"><i class="fas fa-check-circle"></i> <span id="fileName"></span></div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-end">
+        <button class="btn-simulate" id="btnSimulate" onclick="startSimulation()" disabled>
+          <i class="fas fa-play"></i> Simulate
+        </button>
+        <button class="btn-stop" id="btnStop" onclick="stopSimulation()">
+          <i class="fas fa-stop"></i> Stop
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="status-bar" id="statusBar" style="display:none">
+    <div class="status-dot" id="statusDot"></div>
+    <div class="status-label">Status: <span id="statusText">Idle</span></div>
+    <div class="status-label">Device: <span id="statusDevice">—</span></div>
+    <div class="status-label">Row: <span id="statusRow">0</span> / <span id="statusTotal">0</span></div>
+    <div class="status-label">Anomalies: <span id="statusAnomalies" style="color:var(--red)">0</span></div>
+    <!-- Live interval control — always visible while stream active -->
+    <div class="interval-live" id="liveIntervalControl">
+      <label><i class="fas fa-stopwatch" style="margin-right:4px"></i> Interval</label>
+      <input type="range" class="interval-slider" id="liveSlider" min="0.5" max="30" step="0.5" value="2" oninput="onSliderMove(this.value)"/>
+      <input type="number" class="interval-num" id="liveIntervalNum" value="2" min="0.5" max="60" step="0.5" onchange="applyInterval(this.value)"/>
+      <span style="font-size:0.78rem;color:var(--text3)">s</span>
+      <span class="interval-updated" id="intervalUpdated"><i class="fas fa-check"></i> Applied</span>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-bar-outer"><div class="progress-bar-inner" id="progressBar"></div></div>
+      <div class="progress-pct" id="progressPct">0%</div>
+    </div>
+  </div>
+
+  <!-- MAIN STREAM GRID -->
+  <div class="stream-grid" id="streamGrid" style="display:none">
+    <!-- LEFT: GAUGE + PROBA -->
+    <div class="gauge-panel">
+      <div class="panel-head"><i class="fas fa-tachometer-alt"></i> Live Risk Gauge</div>
+      <div class="gauge-body">
+        <div id="liveGaugeSvg"></div>
+        <div class="attack-label" id="liveAttackLabel" style="color:var(--green)">—</div>
+        <div class="attack-sub" id="liveAttackSub">Awaiting data…</div>
+        <div class="conf-pill" id="liveConf">Confidence: —</div>
+        <div class="cur-row">
+          <div class="cr-label">Current Row</div>
+          <div class="cr-val" id="curRowNum">—</div>
+        </div>
+        <div class="proba-panel">
+          <div class="proba-title">Class Probability</div>
+          <div id="probaBars"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: CHARTS -->
+    <div class="charts-panel">
+      <div class="panel-head"><i class="fas fa-chart-line"></i> Live Analytics</div>
+      <div class="charts-body">
+        <div>
+          <div class="chart-label"><i class="fas fa-wave-square"></i> Risk Score Over Time</div>
+          <div class="chart-wrap"><canvas id="chartRisk"></canvas></div>
+        </div>
+        <div>
+          <div class="chart-label"><i class="fas fa-chart-bar"></i> Attack Class Distribution</div>
+          <div class="chart-wrap"><canvas id="chartDist"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOG FEED -->
+  <div class="log-panel" id="logPanel" style="display:none">
+    <div class="panel-head"><i class="fas fa-list"></i> Prediction Log Feed</div>
+    <div class="log-body">
+      <table class="log-table">
+        <thead><tr><th>Row</th><th>Attack Class</th><th>Risk Score</th><th>Level</th><th>Confidence</th><th>Time</th></tr></thead>
+        <tbody id="logBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PAST REPORTS -->
+  {% if reports %}
+  <div class="reports-section">
+    <div class="panel-head" style="padding:1rem 1.4rem;border-bottom:1px solid var(--border)">
+      <i class="fas fa-file-alt"></i> Past Stream Reports ({{ reports|length }})
+    </div>
+    {% for r in reports %}
+    <div class="rep-row">
+      <div class="rep-icon"><i class="fas fa-broadcast-tower"></i></div>
+      <div class="rep-info">
+        <div class="rn">{{ r.device_name }} — {{ r.processed }} / {{ r.total_rows }} rows processed</div>
+        <div class="rs">
+          {{ r.started_at[:19].replace('T',' ') if r.started_at else '—' }} &nbsp;·&nbsp;
+          {{ r.elapsed_sec }}s elapsed &nbsp;·&nbsp;
+          <span style="color:var(--red)">{{ r.anomaly_count }} anomalies</span> &nbsp;·&nbsp;
+          {% for cls, cnt in r.class_counts.items() %}{{ cls }}: {{ cnt }}{% if not loop.last %}, {% endif %}{% endfor %}
+        </div>
+      </div>
+      <div class="rep-actions">
+        <a href="/stream/report/{{ r.stream_id }}" class="rep-btn rep-btn-view"><i class="fas fa-eye"></i> View</a>
+        <a href="/stream/report/{{ r.stream_id }}/download" class="rep-btn rep-btn-dl"><i class="fas fa-download"></i> CSV</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div><!-- max-w -->
+</div><!-- page -->
+
+<!-- ANOMALY TOAST -->
+<div class="anomaly-toast" id="anomalyToast">
+  <i class="fas fa-exclamation-triangle"></i>
+  <span id="toastMsg">Anomaly Detected!</span>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Audio beep ────────────────────────────────────────────────────────────────
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+function beep(freq=880, duration=200, vol=0.3) {
+  try {
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = freq; osc.type = 'sine';
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration/1000);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + duration/1000);
+  } catch(e) {}
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let streamId = null, pollTimer = null, pollIdx = 0;
+let anomalyCount = 0, toastTimer = null;
+let chartRisk = null, chartDist = null;
+const CLASS_COLORS = {
+  'Normal':'#00e5a0','DoS':'#ff2d55','MITM':'#cc0033',
+  'Replay':'#ff9f0a','Spoofing':'#e67300','Data Falsification':'#ffd60a'
+};
+const CLASS_ORDER = ['Normal','DoS','MITM','Replay','Spoofing','Data Falsification'];
+const classCounts = {};
+CLASS_ORDER.forEach(c => classCounts[c] = 0);
+
+// ── File handling ─────────────────────────────────────────────────────────────
+const fileInput = document.getElementById('fileInput');
+const uploadZone = document.getElementById('uploadZone');
+fileInput.addEventListener('change', onFileChosen);
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault(); uploadZone.classList.remove('dragover');
+  if (e.dataTransfer.files[0]) { fileInput.files = e.dataTransfer.files; onFileChosen(); }
+});
+
+function onFileChosen() {
+  const f = fileInput.files[0];
+  if (!f) return;
+  document.getElementById('fileName').textContent = f.name + ' (' + (f.size/1024).toFixed(1) + ' KB)';
+  document.getElementById('fileInfo').classList.add('visible');
+  document.getElementById('btnSimulate').disabled = false;
+}
+
+// ── Charts init ───────────────────────────────────────────────────────────────
+function initCharts() {
+  if (chartRisk) { chartRisk.destroy(); }
+  if (chartDist) { chartDist.destroy(); }
+
+  const gridColor = 'rgba(30,51,84,0.6)';
+  const tickColor = '#4a7a9b';
+
+  chartRisk = new Chart(document.getElementById('chartRisk'), {
+    type: 'line',
+    data: { labels: [], datasets: [{
+      label: 'Risk Score', data: [],
+      borderColor: '#00d4ff', backgroundColor: 'rgba(0,212,255,0.08)',
+      borderWidth: 2, fill: true, tension: 0.4,
+      pointRadius: 3, pointBackgroundColor: '#00d4ff',
+      segment: { borderColor: ctx => {
+        const v = ctx.p1.parsed.y;
+        return v >= 80 ? '#ff2d55' : v >= 60 ? '#ff9f0a' : '#00d4ff';
+      }}
+    }]},
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
+      plugins: { legend: { display: false }, tooltip: { callbacks: {
+        label: ctx => ` Score: ${ctx.parsed.y}`
+      }}},
+      scales: {
+        x: { grid: { color: gridColor }, ticks: { color: tickColor, maxTicksLimit: 10 } },
+        y: { min: 0, max: 100, grid: { color: gridColor }, ticks: { color: tickColor } }
+      }
+    }
+  });
+
+  chartDist = new Chart(document.getElementById('chartDist'), {
+    type: 'bar',
+    data: {
+      labels: CLASS_ORDER,
+      datasets: [{
+        label: 'Count', data: CLASS_ORDER.map(() => 0),
+        backgroundColor: CLASS_ORDER.map(c => CLASS_COLORS[c] + '99'),
+        borderColor: CLASS_ORDER.map(c => CLASS_COLORS[c]),
+        borderWidth: 2, borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: gridColor }, ticks: { color: tickColor } },
+        y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor, stepSize: 1 } }
+      }
+    }
+  });
+}
+
+// ── Gauge builder (same as predict page) ─────────────────────────────────────
+function buildGaugeSvg(score, color, levelLabel) {
+  const cx=130, cy=150, r=100;
+  function polar(deg) {
+    const rad = deg * Math.PI / 180;
+    return [cx + r * Math.cos(rad), cy - r * Math.sin(rad)];
+  }
+  const [sx, sy] = polar(180);
+  const filled = score / 100;
+  const sweepDeg = filled * 180;
+  const [tx, ty] = polar(180 - sweepDeg);
+  const arcLen = Math.PI * r;
+  const fillLen = filled * arcLen;
+  const large = sweepDeg > 180 ? 1 : 0;
+  const [ex, ey] = polar(0);
+  const trackPath = `M ${sx} ${sy} A ${r} ${r} 0 1 1 ${ex} ${ey}`;
+  const fillPath = sweepDeg > 0 ? `M ${sx} ${sy} A ${r} ${r} 0 ${large} 1 ${tx} ${ty}` : '';
+  const ticks = [0,25,50,75,100].map(v => {
+    const ri=r-14, ro=r-2;
+    const a = 180 - v*1.8;
+    const [x1,y1] = [cx + ri*Math.cos(a*Math.PI/180), cy - ri*Math.sin(a*Math.PI/180)];
+    const [x2,y2] = [cx + ro*Math.cos(a*Math.PI/180), cy - ro*Math.sin(a*Math.PI/180)];
+    return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#2a4060" stroke-width="2"/>`;
+  }).join('');
+  return `<svg viewBox="0 0 260 160" width="240" height="148" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="lg2" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#00e5a0"/>
+        <stop offset="50%" stop-color="#ff9f0a"/>
+        <stop offset="100%" stop-color="#ff2d55"/>
+      </linearGradient>
+      <filter id="gw"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+    <path d="${trackPath}" fill="none" stroke="#1a2e4a" stroke-width="14" stroke-linecap="round"/>
+    ${fillPath ? `<path d="${fillPath}" fill="none" stroke="url(#lg2)" stroke-width="14" stroke-linecap="round" filter="url(#gw)"
+      stroke-dasharray="${fillLen.toFixed(1)} ${arcLen.toFixed(1)}">
+      <animate attributeName="stroke-dasharray" from="0 ${arcLen.toFixed(1)}" to="${fillLen.toFixed(1)} ${arcLen.toFixed(1)}" dur="0.7s" fill="freeze"/>
+    </path>` : ''}
+    ${ticks}
+    ${sweepDeg > 0 ? `<circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="7" fill="${color}" filter="url(#gw)"/><circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="3.5" fill="white"/>` : ''}
+    <text x="${cx}" y="${cy-12}" text-anchor="middle" font-family="'Space Mono',monospace" font-size="38" font-weight="700" fill="${color}">${score}</text>
+    <text x="${cx}" y="${cy+12}" text-anchor="middle" font-family="Outfit,sans-serif" font-size="13" font-weight="600" fill="${color}" letter-spacing="1">${levelLabel.toUpperCase()}</text>
+    <text x="${cx}" y="${cy+28}" text-anchor="middle" font-family="Outfit,sans-serif" font-size="10" fill="#4a7a9b">RISK SCORE</text>
+    <text x="${sx-4}" y="${cy+18}" text-anchor="end" font-family="Outfit" font-size="10" fill="#2a4060">0</text>
+    <text x="${ex+4}" y="${cy+18}" text-anchor="start" font-family="Outfit" font-size="10" fill="#2a4060">100</text>
+  </svg>`;
+}
+
+// ── Proba bars ────────────────────────────────────────────────────────────────
+function renderProbaBars(probaDict, attack) {
+  return CLASS_ORDER.map(cls => {
+    const p = probaDict[cls] || 0;
+    const pct = (p*100).toFixed(1);
+    const c = CLASS_COLORS[cls];
+    const active = cls === attack;
+    return `<div class="pb-row">
+      <span class="pb-name" style="color:${active?c:'var(--text2)'};font-weight:${active?700:400}">${cls}</span>
+      <div class="pb-bar-wrap">
+        <div class="pb-bar" style="width:${pct}%;background:${c};opacity:${active?1:0.4}"></div>
+      </div>
+      <span class="pb-pct" style="color:${active?c:'var(--text3)'}">${pct}%</span>
+    </div>`;
+  }).join('');
+}
+
+// ── Badge helper ──────────────────────────────────────────────────────────────
+function levelBadge(level, attack) {
+  const styles = {
+    Safe:'color:#00e5a0;background:rgba(0,229,160,0.1);border:1px solid rgba(0,229,160,0.3)',
+    Critical:'color:#ff2d55;background:rgba(255,45,85,0.1);border:1px solid rgba(255,45,85,0.3)',
+    High:'color:#ff9f0a;background:rgba(255,159,10,0.1);border:1px solid rgba(255,159,10,0.3)',
+    Medium:'color:#ffd60a;background:rgba(255,214,10,0.1);border:1px solid rgba(255,214,10,0.3)',
+  };
+  return `<span class="badge-sm" style="${styles[level]||styles.Safe}">${level}</span>`;
+}
+
+// ── Live interval control ─────────────────────────────────────────────────────
+let intervalDebounce = null;
+
+function onSliderMove(val) {
+  // Keep number input in sync while dragging — apply after short pause
+  document.getElementById('liveIntervalNum').value = val;
+  clearTimeout(intervalDebounce);
+  intervalDebounce = setTimeout(() => applyInterval(val), 400);
+}
+
+async function applyInterval(val) {
+  val = Math.max(0.5, Math.min(60, parseFloat(val) || 2));
+  // Sync both controls
+  document.getElementById('liveSlider').value = Math.min(val, 30); // slider max is 30
+  document.getElementById('liveIntervalNum').value = val;
+
+  if (!streamId) return;
+
+  await fetch('/stream/interval/' + streamId, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ interval: val })
+  });
+
+  // Flash "Applied" confirmation
+  const badge = document.getElementById('intervalUpdated');
+  badge.classList.add('show');
+  clearTimeout(intervalDebounce);
+  setTimeout(() => badge.classList.remove('show'), 1800);
+}
+
+// ── Start simulation ──────────────────────────────────────────────────────────
+async function startSimulation() {
+  const file = fileInput.files[0];
+  if (!file) return;
+  const device = document.getElementById('deviceSelect').value;
+  const interval = parseFloat(document.getElementById('intervalInput').value) || 2;
+
+  // Reset state
+  streamId = null; pollIdx = 0; anomalyCount = 0;
+  CLASS_ORDER.forEach(c => classCounts[c] = 0);
+  document.getElementById('logBody').innerHTML = '';
+
+  // Upload
+  const fd = new FormData();
+  fd.append('logfile', file);
+  fd.append('device_type', device);
+  fd.append('interval', interval);
+
+  document.getElementById('btnSimulate').disabled = true;
+  document.getElementById('btnSimulate').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading…';
+
+  const upRes = await fetch('/stream/upload', { method:'POST', body: fd });
+  const upData = await upRes.json();
+
+  if (!upData.success) {
+    alert('Upload failed: ' + upData.error);
+    document.getElementById('btnSimulate').disabled = false;
+    document.getElementById('btnSimulate').innerHTML = '<i class="fas fa-play"></i> Simulate';
+    return;
+  }
+
+  streamId = upData.stream_id;
+
+  // Show UI
+  const devNames = {'1':'ECG Monitor','2':'Blood Pressure Monitor','3':'Pulse Oximeter','4':'Insulin Pump','5':'Ventilator','6':'Smart Infusion Pump'};
+  document.getElementById('statusBar').style.display = 'flex';
+  document.getElementById('streamGrid').style.display = 'grid';
+  document.getElementById('logPanel').style.display = 'block';
+  document.getElementById('statusDot').className = 'status-dot running';
+  document.getElementById('statusText').textContent = 'Running';
+  document.getElementById('statusDevice').textContent = devNames[device] || 'Device';
+  document.getElementById('statusTotal').textContent = upData.total;
+  document.getElementById('statusAnomalies').textContent = '0';
+  document.getElementById('btnStop').classList.add('visible');
+  document.getElementById('btnSimulate').innerHTML = '<i class="fas fa-play"></i> Simulate';
+
+  // Sync interval into live control
+  document.getElementById('liveSlider').value = Math.min(interval, 30);
+  document.getElementById('liveIntervalNum').value = interval;
+
+  initCharts();
+
+  // Start on server
+  await fetch('/stream/start/' + streamId, { method:'POST' });
+
+  // Poll
+  pollTimer = setInterval(pollResults, 800);
+}
+
+// ── Stop ──────────────────────────────────────────────────────────────────────
+async function stopSimulation() {
+  if (!streamId) return;
+  clearInterval(pollTimer);
+  await fetch('/stream/stop/' + streamId, { method:'POST' });
+  document.getElementById('statusDot').className = 'status-dot stopped';
+  document.getElementById('statusText').textContent = 'Stopped by user';
+  document.getElementById('btnStop').classList.remove('visible');
+  showDoneMsg();
+}
+
+// ── Poll ──────────────────────────────────────────────────────────────────────
+async function pollResults() {
+  if (!streamId) return;
+  const res = await fetch('/stream/poll/' + streamId + '?from=' + pollIdx);
+  const data = await res.json();
+  if (!data.success) return;
+
+  data.new_results.forEach(r => {
+    pollIdx++;
+    processResult(r);
+  });
+
+  // Progress
+  const pct = data.total > 0 ? Math.round(data.current_index / data.total * 100) : 0;
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressPct').textContent = pct + '%';
+  document.getElementById('statusRow').textContent = data.current_index;
+
+  if (!data.running && !data.stopped) {
+    clearInterval(pollTimer);
+    document.getElementById('statusDot').className = 'status-dot done';
+    document.getElementById('statusText').textContent = 'Completed';
+    document.getElementById('btnStop').classList.remove('visible');
+    showDoneMsg();
+    setTimeout(() => location.reload(), 2000);
+  }
+}
+
+// ── Process one result ────────────────────────────────────────────────────────
+function processResult(r) {
+  const { row, attack, score, level, color, confidence, proba_dict } = r;
+  const isAnomaly = attack !== 'Normal';
+
+  // Update gauge
+  document.getElementById('liveGaugeSvg').innerHTML = buildGaugeSvg(score, color, level);
+  document.getElementById('liveAttackLabel').textContent = attack;
+  document.getElementById('liveAttackLabel').style.color = color;
+  document.getElementById('liveAttackSub').textContent = isAnomaly ? '⚠ Attack Detected' : '✓ Normal Traffic';
+  document.getElementById('liveConf').textContent = `Confidence: ${confidence}%`;
+  document.getElementById('curRowNum').textContent = `Row ${row}`;
+
+  // Proba bars
+  document.getElementById('probaBars').innerHTML = renderProbaBars(proba_dict, attack);
+
+  // Charts — risk line
+  const label = `R${row}`;
+  chartRisk.data.labels.push(label);
+  chartRisk.data.datasets[0].data.push(score);
+  if (chartRisk.data.labels.length > 60) {
+    chartRisk.data.labels.shift();
+    chartRisk.data.datasets[0].data.shift();
+  }
+  chartRisk.update('none');
+
+  // Charts — distribution bar
+  classCounts[attack] = (classCounts[attack] || 0) + 1;
+  chartDist.data.datasets[0].data = CLASS_ORDER.map(c => classCounts[c]);
+  chartDist.update('none');
+
+  // Log table row
+  const tbody = document.getElementById('logBody');
+  const ts = r.timestamp ? r.timestamp.substring(11,19) : '';
+  const tr = document.createElement('tr');
+  tr.className = (isAnomaly ? 'anomaly ' : '') + 'new-row';
+  tr.innerHTML = `
+    <td style="color:var(--text3);font-family:'Space Mono',monospace">${row}</td>
+    <td style="color:${color};font-weight:600">${attack}</td>
+    <td style="font-family:'Space Mono',monospace;color:${color}">${score}</td>
+    <td>${levelBadge(level, attack)}</td>
+    <td style="color:var(--text2)">${confidence}%</td>
+    <td style="color:var(--text3);font-size:0.78rem">${ts}</td>`;
+  tbody.insertBefore(tr, tbody.firstChild);
+  // Keep max 100 rows in DOM
+  while (tbody.children.length > 100) tbody.removeChild(tbody.lastChild);
+
+  // Beep + toast on anomaly
+  if (isAnomaly) {
+    anomalyCount++;
+    document.getElementById('statusAnomalies').textContent = anomalyCount;
+    beep(660, 180);
+    showAnomalyToast(attack, score);
+  }
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function showAnomalyToast(attack, score) {
+  const toast = document.getElementById('anomalyToast');
+  document.getElementById('toastMsg').textContent = `⚠ ${attack} detected! Score: ${score}`;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2800);
+}
+
+function showDoneMsg() {
+  document.getElementById('statusText').textContent = document.getElementById('statusText').textContent + ' — Report saved';
+}
+</script>
+{% endblock %}

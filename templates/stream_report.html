@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}Stream Report — IoMT Shield{% endblock %}
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+.page{padding:2.5rem 2rem}
+.max-w{max-width:1100px;margin:0 auto}
+.back-link{display:inline-flex;align-items:center;gap:8px;color:var(--text2);text-decoration:none;font-size:0.9rem;margin-bottom:1.5rem;transition:color 0.2s}
+.back-link:hover{color:var(--accent)}
+
+.hero-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:2rem;margin-bottom:1.5rem;position:relative;overflow:hidden}
+.hero-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--green))}
+.hero-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1.5rem}
+.hero-stat .hs-label{font-size:0.72rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+.hero-stat .hs-val{font-family:'Space Mono',monospace;font-size:1.6rem;font-weight:700}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.panel-head{padding:1rem 1.3rem;border-bottom:1px solid var(--border);font-size:0.9rem;font-weight:700;display:flex;align-items:center;gap:8px}
+.panel-head i{color:var(--accent)}
+.panel-body{padding:1.3rem}
+.chart-wrap{height:220px;position:relative}
+
+.class-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.cr-name{width:130px;font-size:0.85rem;font-weight:600;flex-shrink:0}
+.cr-bar-wrap{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden}
+.cr-bar{height:100%;border-radius:4px}
+.cr-count{width:36px;text-align:right;font-size:0.82rem;font-weight:700}
+
+.full-panel{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:1.5rem}
+.log-table{width:100%;border-collapse:collapse}
+.log-table th{background:var(--bg2);padding:9px 14px;text-align:left;font-size:0.72rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;border-bottom:1px solid var(--border);position:sticky;top:0}
+.log-table td{padding:9px 14px;font-size:0.85rem;border-bottom:1px solid rgba(30,51,84,0.4)}
+.log-table tr:last-child td{border-bottom:none}
+.log-table tr.anomaly td{background:rgba(255,45,85,0.03)}
+.badge-sm{padding:3px 9px;border-radius:50px;font-size:0.76rem;font-weight:600;display:inline-block}
+.scroll-wrap{max-height:400px;overflow-y:auto}
+
+.dl-btn{padding:10px 22px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:#000;font-weight:700;font-size:0.88rem;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:all 0.3s;font-family:'Outfit',sans-serif}
+.dl-btn:hover{box-shadow:0 0 20px rgba(0,212,255,0.4)}
+
+@media(max-width:800px){.hero-grid{grid-template-columns:repeat(2,1fr)}.two-col{grid-template-columns:1fr}}
+</style>
+{% endblock %}
+{% block content %}
+{% set cc = report.class_counts %}
+{% set max_count = cc.values()|max if cc else 1 %}
+{% set class_colors = {'Normal':'#00e5a0','DoS':'#ff2d55','MITM':'#cc0033','Replay':'#ff9f0a','Spoofing':'#e67300','Data Falsification':'#ffd60a'} %}
+
+<div class="page">
+<div class="max-w">
+  <a href="{{ url_for('stream_page') }}" class="back-link"><i class="fas fa-arrow-left"></i> Back to Live Stream</a>
+
+  <!-- HERO STATS -->
+  <div class="hero-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem">
+      <div>
+        <h1 style="font-family:'Space Mono',monospace;font-size:1.4rem;font-weight:700">Stream Report</h1>
+        <p style="color:var(--text2);font-size:0.88rem;margin-top:3px">{{ report.device_name }} &nbsp;·&nbsp; {{ report.started_at[:19].replace('T',' ') if report.started_at else '—' }}</p>
+      </div>
+      <a href="{{ url_for('stream_report_download', stream_id=report.stream_id) }}" class="dl-btn">
+        <i class="fas fa-download"></i> Download CSV
+      </a>
+    </div>
+    <div class="hero-grid">
+      <div class="hero-stat">
+        <div class="hs-label">Rows Processed</div>
+        <div class="hs-val" style="color:var(--accent)">{{ report.processed }}</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hs-label">Total Rows</div>
+        <div class="hs-val" style="color:var(--text2)">{{ report.total_rows }}</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hs-label">Time Elapsed</div>
+        <div class="hs-val" style="color:var(--green)">{{ report.elapsed_sec }}s</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hs-label">Anomalies</div>
+        <div class="hs-val" style="color:var(--red)">{{ report.anomaly_count }}</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hs-label">Interval</div>
+        <div class="hs-val" style="color:var(--text)">{{ report.interval }}s</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="two-col">
+    <div class="panel">
+      <div class="panel-head"><i class="fas fa-wave-square"></i> Risk Score Timeline</div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="chartTimeline"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><i class="fas fa-chart-pie"></i> Class Distribution</div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="chartPie"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- CLASS BREAKDOWN -->
+  <div class="panel" style="margin-bottom:1.5rem">
+    <div class="panel-head"><i class="fas fa-shield-alt"></i> Attack Class Breakdown</div>
+    <div class="panel-body">
+      {% for cls in ['Normal','DoS','MITM','Replay','Spoofing','Data Falsification'] %}
+      {% set cnt = cc.get(cls, 0) %}
+      {% set c = class_colors.get(cls,'#8bb8cc') %}
+      {% set bar_w = (cnt / max_count * 100)|round(1) if max_count > 0 else 0 %}
+      <div class="class-row">
+        <span class="cr-name" style="color:{{ c }}">{{ cls }}</span>
+        <div class="cr-bar-wrap"><div class="cr-bar" style="width:{{ bar_w }}%;background:{{ c }}"></div></div>
+        <span class="cr-count" style="color:{{ c }}">{{ cnt }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- FULL LOG TABLE -->
+  <div class="full-panel">
+    <div class="panel-head" style="padding:1rem 1.3rem;border-bottom:1px solid var(--border)">
+      <i class="fas fa-list"></i> Full Prediction Log ({{ report.processed }} rows)
+    </div>
+    <div class="scroll-wrap">
+      <table class="log-table">
+        <thead><tr><th>Row</th><th>Attack</th><th>Score</th><th>Level</th><th>Confidence</th><th>Timestamp</th></tr></thead>
+        <tbody>
+        {% for r in report.results %}
+        {% set c = class_colors.get(r.attack,'#8bb8cc') %}
+        {% set lvl_styles = {
+          'Safe':'color:#00e5a0;background:rgba(0,229,160,0.1);border:1px solid rgba(0,229,160,0.3)',
+          'Critical':'color:#ff2d55;background:rgba(255,45,85,0.1);border:1px solid rgba(255,45,85,0.3)',
+          'High':'color:#ff9f0a;background:rgba(255,159,10,0.1);border:1px solid rgba(255,159,10,0.3)',
+          'Medium':'color:#ffd60a;background:rgba(255,214,10,0.1);border:1px solid rgba(255,214,10,0.3)'
+        } %}
+        <tr {% if r.attack != 'Normal' %}class="anomaly"{% endif %}>
+          <td style="color:var(--text3);font-family:'Space Mono',monospace">{{ r.row }}</td>
+          <td style="color:{{ c }};font-weight:600">{{ r.attack }}</td>
+          <td style="font-family:'Space Mono',monospace;color:{{ c }}">{{ r.score }}</td>
+          <td><span class="badge-sm" style="{{ lvl_styles.get(r.level,'') }}">{{ r.level }}</span></td>
+          <td style="color:var(--text2)">{{ r.confidence }}%</td>
+          <td style="color:var(--text3);font-size:0.8rem">{{ r.timestamp[:19].replace('T',' ') if r.timestamp else '—' }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const results = {{ report.results | tojson }};
+const classColors = {
+  'Normal':'#00e5a0','DoS':'#ff2d55','MITM':'#cc0033',
+  'Replay':'#ff9f0a','Spoofing':'#e67300','Data Falsification':'#ffd60a'
+};
+const gridC = 'rgba(30,51,84,0.6)', tickC = '#4a7a9b';
+
+// Timeline chart
+const timeLabels = results.map(r => `R${r.row}`);
+const timeScores = results.map(r => r.score);
+const pointColors = results.map(r => classColors[r.attack] || '#00d4ff');
+
+new Chart(document.getElementById('chartTimeline'), {
+  type: 'line',
+  data: {
+    labels: timeLabels,
+    datasets: [{
+      label: 'Risk Score', data: timeScores,
+      borderColor: '#00d4ff', backgroundColor: 'rgba(0,212,255,0.07)',
+      borderWidth: 2, fill: true, tension: 0.4,
+      pointRadius: results.length < 100 ? 3 : 0,
+      pointBackgroundColor: pointColors,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid:{color:gridC}, ticks:{color:tickC, maxTicksLimit:12} },
+      y: { min:0, max:100, grid:{color:gridC}, ticks:{color:tickC} }
+    }
+  }
+});
+
+// Pie chart
+const cc = {{ report.class_counts | tojson }};
+const classOrder = ['Normal','DoS','MITM','Replay','Spoofing','Data Falsification'];
+const pieCounts = classOrder.map(c => cc[c] || 0);
+const pieColors = classOrder.map(c => classColors[c]);
+
+new Chart(document.getElementById('chartPie'), {
+  type: 'doughnut',
+  data: {
+    labels: classOrder,
+    datasets: [{ data: pieCounts, backgroundColor: pieColors.map(c=>c+'cc'), borderColor: pieColors, borderWidth: 2 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'right', labels: { color: '#8bb8cc', font:{size:11}, padding: 12 } }
+    },
+    cutout: '60%'
+  }
+});
+</script>
+{% endblock %}

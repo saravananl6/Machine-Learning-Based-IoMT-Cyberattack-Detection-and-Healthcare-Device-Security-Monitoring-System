@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}IoMT Shield — Medical IoT Security Platform{% endblock %}
+{% block extra_head %}
+<style>
+.hero{min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:4rem 2rem}
+.hero-bg{position:absolute;inset:0;z-index:0}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,212,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.04) 1px,transparent 1px);background-size:60px 60px;animation:gridMove 20s linear infinite}
+@keyframes gridMove{0%{transform:translateY(0)}100%{transform:translateY(60px)}}
+.hero-orb{position:absolute;border-radius:50%;filter:blur(80px);animation:pulse 4s ease-in-out infinite}
+.orb1{width:500px;height:500px;background:radial-gradient(circle,rgba(0,212,255,0.12),transparent);top:-100px;right:-100px}
+.orb2{width:400px;height:400px;background:radial-gradient(circle,rgba(0,229,160,0.08),transparent);bottom:-100px;left:-100px;animation-delay:2s}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:0.7}50%{transform:scale(1.1);opacity:1}}
+
+.hero-content{position:relative;z-index:1;text-align:center;max-width:800px}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);border-radius:50px;padding:6px 16px;font-size:0.8rem;font-weight:600;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin-bottom:2rem;animation:fadeUp 0.6s ease both}
+.hero-badge .dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:blink 1.5s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.hero-title{font-family:'Space Mono',monospace;font-size:clamp(2.5rem,6vw,4.5rem);font-weight:700;line-height:1.1;margin-bottom:1.5rem;animation:fadeUp 0.6s 0.1s ease both}
+.hero-title .line1{display:block;color:var(--text)}
+.hero-title .line2{display:block;background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:1.15rem;color:var(--text2);max-width:580px;margin:0 auto 3rem;line-height:1.8;animation:fadeUp 0.6s 0.2s ease both}
+.hero-actions{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;animation:fadeUp 0.6s 0.3s ease both}
+.btn-primary{padding:14px 32px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:12px;color:#000;font-size:1rem;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:10px;transition:all 0.3s;box-shadow:0 0 30px rgba(0,212,255,0.4)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 0 50px rgba(0,212,255,0.6)}
+.btn-secondary{padding:14px 32px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:1rem;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:10px;transition:all 0.3s}
+.btn-secondary:hover{background:rgba(255,255,255,0.08);border-color:var(--accent);color:var(--accent)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+
+/* STATS STRIP */
+.stats-strip{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:2rem}
+.stats-grid{max-width:1000px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:2rem;text-align:center}
+.stat-item .num{font-family:'Space Mono',monospace;font-size:2rem;font-weight:700;color:var(--accent)}
+.stat-item .lbl{font-size:0.85rem;color:var(--text3);margin-top:4px;text-transform:uppercase;letter-spacing:1px}
+
+/* FEATURES */
+.features{padding:6rem 2rem;max-width:1100px;margin:0 auto}
+.section-label{text-align:center;margin-bottom:3rem}
+.section-label h2{font-family:'Space Mono',monospace;font-size:2rem;margin-bottom:0.5rem}
+.section-label p{color:var(--text2);font-size:1rem}
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
+.feat-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:2rem;transition:all 0.3s;position:relative;overflow:hidden}
+.feat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:0;transition:0.3s}
+.feat-card:hover{border-color:rgba(0,212,255,0.3);transform:translateY(-4px);box-shadow:var(--glow2)}
+.feat-card:hover::before{opacity:1}
+.feat-icon{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:1.2rem}
+.feat-card h3{font-size:1.05rem;font-weight:700;margin-bottom:0.6rem}
+.feat-card p{color:var(--text2);font-size:0.9rem;line-height:1.7}
+
+/* ATTACKS SECTION */
+.attacks{padding:4rem 2rem;background:var(--bg2)}
+.attacks-inner{max-width:1100px;margin:0 auto}
+.attack-tags{display:flex;flex-wrap:wrap;gap:12px;margin-top:2rem;justify-content:center}
+.attack-tag{padding:10px 20px;border-radius:50px;font-size:0.85rem;font-weight:600;border:1px solid;display:flex;align-items:center;gap:8px}
+
+@media(max-width:768px){
+  .features-grid{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="hero-bg">
+    <div class="hero-grid"></div>
+    <div class="hero-orb orb1"></div>
+    <div class="hero-orb orb2"></div>
+  </div>
+  <div class="hero-content">
+    <div class="hero-badge"><span class="dot"></span> AI-Powered Security System</div>
+    <h1 class="hero-title">
+      <span class="line1">Protect Your Medical</span>
+      <span class="line2">IoT Ecosystem</span>
+    </h1>
+    <p class="hero-sub">Advanced anomaly detection for Internet of Medical Things devices. Detect DoS, MITM, Replay, Spoofing, and Data Falsification attacks in real-time using machine learning.</p>
+    <div class="hero-actions">
+      <a href="{{ url_for('register') }}" class="btn-primary"><i class="fas fa-shield-alt"></i> Get Started Free</a>
+      <a href="{{ url_for('login') }}" class="btn-secondary"><i class="fas fa-sign-in-alt"></i> Sign In</a>
+    </div>
+  </div>
+</section>
+
+<section class="stats-strip">
+  <div class="stats-grid">
+    <div class="stat-item"><div class="num">6</div><div class="lbl">Attack Classes</div></div>
+    <div class="stat-item"><div class="num">14</div><div class="lbl">Network Features</div></div>
+    <div class="stat-item"><div class="num">6</div><div class="lbl">Device Types</div></div>
+    <div class="stat-item"><div class="num">~Real</div><div class="lbl">Time Detection</div></div>
+  </div>
+</section>
+
+<section class="features">
+  <div class="section-label">
+    <h2>Platform Capabilities</h2>
+    <p>Everything you need to secure your medical IoT infrastructure</p>
+  </div>
+  <div class="features-grid">
+    <div class="feat-card">
+      <div class="feat-icon" style="background:rgba(0,212,255,0.1);color:var(--accent)"><i class="fas fa-brain"></i></div>
+      <h3>ML-Powered Detection</h3>
+      <p>Trained models analyze 14 network flow features to classify attacks with high precision across 6 attack categories.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:rgba(0,229,160,0.1);color:var(--green)"><i class="fas fa-heartbeat"></i></div>
+      <h3>Medical Device Support</h3>
+      <p>Specialized profiles for ECG monitors, ventilators, insulin pumps, pulse oximeters, and smart infusion systems.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:rgba(255,159,10,0.1);color:var(--orange)"><i class="fas fa-tachometer-alt"></i></div>
+      <h3>Risk Score Gauge</h3>
+      <p>Visual risk scoring with animated gauge displays, color-coded severity levels, and instant threat classification.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:rgba(255,45,85,0.1);color:var(--red)"><i class="fas fa-shield-virus"></i></div>
+      <h3>Smart Recommendations</h3>
+      <p>Attack-specific incident response actions and security precautions tailored to the detected threat type.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:rgba(0,212,255,0.1);color:var(--accent)"><i class="fas fa-history"></i></div>
+      <h3>Prediction History</h3>
+      <p>Complete audit trail of all predictions with detailed reports viewable at any time for compliance and review.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:rgba(255,214,10,0.1);color:var(--yellow)"><i class="fas fa-user-shield"></i></div>
+      <h3>Secure Access Control</h3>
+      <p>Role-based authentication for medical administrators with secure session management and audit logging.</p>
+    </div>
+  </div>
+</section>
+
+<section class="attacks">
+  <div class="attacks-inner">
+    <div class="section-label">
+      <h2>Detected Attack Types</h2>
+      <p>Our model classifies 5 types of cyber attacks on IoMT networks</p>
+    </div>
+    <div class="attack-tags">
+      <span class="attack-tag" style="color:#00e5a0;border-color:rgba(0,229,160,0.3);background:rgba(0,229,160,0.05)"><i class="fas fa-check-circle"></i> Normal Traffic</span>
+      <span class="attack-tag" style="color:#ff2d55;border-color:rgba(255,45,85,0.3);background:rgba(255,45,85,0.05)"><i class="fas fa-bomb"></i> DoS Attack</span>
+      <span class="attack-tag" style="color:#ff2d55;border-color:rgba(255,45,85,0.3);background:rgba(255,45,85,0.05)"><i class="fas fa-user-secret"></i> MITM Attack</span>
+      <span class="attack-tag" style="color:#ff9f0a;border-color:rgba(255,159,10,0.3);background:rgba(255,159,10,0.05)"><i class="fas fa-redo"></i> Replay Attack</span>
+      <span class="attack-tag" style="color:#ff9f0a;border-color:rgba(255,159,10,0.3);background:rgba(255,159,10,0.05)"><i class="fas fa-mask"></i> Spoofing Attack</span>
+      <span class="attack-tag" style="color:#ffd60a;border-color:rgba(255,214,10,0.3);background:rgba(255,214,10,0.05)"><i class="fas fa-database"></i> Data Falsification</span>
+    </div>
+  </div>
+</section>
+{% endblock %}

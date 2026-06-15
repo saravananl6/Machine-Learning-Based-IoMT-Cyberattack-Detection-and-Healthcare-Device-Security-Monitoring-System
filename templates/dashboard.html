@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — IoMT Shield{% endblock %}
+{% block extra_head %}
+<style>
+.page{padding:2.5rem 2rem}
+.page-header{margin-bottom:2.5rem}
+.page-header h1{font-family:'Space Mono',monospace;font-size:1.8rem;font-weight:700}
+.page-header h1 span{color:var(--accent)}
+.page-header p{color:var(--text2);margin-top:4px}
+
+/* STAT CARDS */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1.2rem;margin-bottom:2rem}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.5rem;display:flex;align-items:center;gap:1rem;position:relative;overflow:hidden;transition:all 0.3s}
+.stat-card::after{content:'';position:absolute;inset:0;opacity:0;transition:0.3s}
+.stat-card:hover{transform:translateY(-2px)}
+.stat-icon{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
+.stat-info .num{font-family:'Space Mono',monospace;font-size:2rem;font-weight:700;line-height:1}
+.stat-info .lbl{font-size:0.82rem;color:var(--text2);margin-top:4px;text-transform:uppercase;letter-spacing:0.5px}
+
+/* PANELS */
+.panels{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.panel-head{padding:1.2rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.panel-head h2{font-size:1rem;font-weight:700;display:flex;align-items:center;gap:8px}
+.panel-head h2 i{color:var(--accent)}
+.panel-body{padding:1.5rem}
+
+/* RECENT TABLE */
+.pred-table{width:100%;border-collapse:collapse}
+.pred-table th{font-size:0.78rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;padding:0 0 10px;font-weight:600;text-align:left;border-bottom:1px solid var(--border)}
+.pred-table td{padding:12px 0;border-bottom:1px solid rgba(30,51,84,0.5);font-size:0.88rem;vertical-align:middle}
+.pred-table tr:last-child td{border-bottom:none}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:50px;font-size:0.78rem;font-weight:600}
+.badge-safe{background:rgba(0,229,160,0.1);color:var(--green);border:1px solid rgba(0,229,160,0.3)}
+.badge-critical{background:rgba(255,45,85,0.1);color:var(--red);border:1px solid rgba(255,45,85,0.3)}
+.badge-high{background:rgba(255,159,10,0.1);color:var(--orange);border:1px solid rgba(255,159,10,0.3)}
+.badge-medium{background:rgba(255,214,10,0.1);color:var(--yellow);border:1px solid rgba(255,214,10,0.3)}
+
+.quick-action{display:flex;flex-direction:column;gap:10px}
+.qa-btn{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;text-decoration:none;color:var(--text);transition:all 0.2s;cursor:pointer}
+.qa-btn:hover{border-color:var(--accent);background:rgba(0,212,255,0.05);transform:translateX(4px)}
+.qa-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.qa-info{flex:1}
+.qa-info .qa-title{font-weight:600;font-size:0.95rem}
+.qa-info .qa-sub{font-size:0.82rem;color:var(--text2);margin-top:2px}
+.qa-arrow{color:var(--text3)}
+
+/* ALERT BANNER */
+.alert-banner{display:flex;align-items:center;gap:12px;padding:14px 20px;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.2);border-radius:12px;margin-bottom:2rem;font-size:0.9rem}
+.alert-banner i{color:var(--accent);font-size:1.1rem}
+
+.empty-state{text-align:center;padding:2rem;color:var(--text3)}
+.empty-state i{font-size:2rem;margin-bottom:0.8rem;display:block}
+.empty-state a{color:var(--accent);text-decoration:none;font-weight:600}
+
+.view-link{color:var(--accent);text-decoration:none;font-size:0.82rem;font-weight:600}
+.view-link:hover{text-decoration:underline}
+
+@media(max-width:900px){
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .panels{grid-template-columns:1fr}
+}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page">
+  <div style="max-width:1200px;margin:0 auto">
+    <div class="page-header">
+      <h1>Welcome back, <span>{{ session.get('name','Admin') }}</span> 👋</h1>
+      <p>IoMT Security Monitoring Dashboard</p>
+    </div>
+
+    <div class="alert-banner">
+      <i class="fas fa-info-circle"></i>
+      <span>Monitor your IoT medical device network. Run predictions to detect anomalies and security threats in real-time.</span>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(0,212,255,0.1);color:var(--accent)"><i class="fas fa-chart-bar"></i></div>
+        <div class="stat-info">
+          <div class="num" style="color:var(--accent)">{{ stats.total }}</div>
+          <div class="lbl">Total Predictions</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(255,45,85,0.1);color:var(--red)"><i class="fas fa-exclamation-triangle"></i></div>
+        <div class="stat-info">
+          <div class="num" style="color:var(--red)">{{ stats.critical }}</div>
+          <div class="lbl">Critical Threats</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(255,159,10,0.1);color:var(--orange)"><i class="fas fa-shield-alt"></i></div>
+        <div class="stat-info">
+          <div class="num" style="color:var(--orange)">{{ stats.high }}</div>
+          <div class="lbl">High Risk</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(0,229,160,0.1);color:var(--green)"><i class="fas fa-check-circle"></i></div>
+        <div class="stat-info">
+          <div class="num" style="color:var(--green)">{{ stats.normal }}</div>
+          <div class="lbl">Normal Traffic</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panels">
+      <!-- Recent Predictions -->
+      <div class="panel">
+        <div class="panel-head">
+          <h2><i class="fas fa-clock"></i> Recent Predictions</h2>
+          <a href="{{ url_for('history') }}" style="font-size:0.85rem;color:var(--accent);text-decoration:none">View All →</a>
+        </div>
+        <div class="panel-body">
+          {% if recent %}
+          <table class="pred-table">
+            <thead><tr><th>Device</th><th>Attack</th><th>Risk</th><th></th></tr></thead>
+            <tbody>
+            {% for p in recent %}
+            <tr>
+              <td>{{ p.device_name }}</td>
+              <td>{{ p.attack }}</td>
+              <td>
+                {% set lvl = p.risk_level.lower() %}
+                <span class="badge badge-{{ lvl if lvl in ['safe','critical','high','medium'] else 'safe' }}">{{ p.risk_level }}</span>
+              </td>
+              <td><a href="{{ url_for('history_detail', pred_id=p.id) }}" class="view-link">View</a></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="empty-state">
+            <i class="fas fa-brain"></i>
+            <p>No predictions yet.<br><a href="{{ url_for('predict') }}">Run your first analysis →</a></p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="panel">
+        <div class="panel-head"><h2><i class="fas fa-bolt"></i> Quick Actions</h2></div>
+        <div class="panel-body">
+          <div class="quick-action">
+            <a href="{{ url_for('predict') }}" class="qa-btn">
+              <div class="qa-icon" style="background:rgba(0,212,255,0.1);color:var(--accent)"><i class="fas fa-brain"></i></div>
+              <div class="qa-info">
+                <div class="qa-title">Run Attack Prediction</div>
+                <div class="qa-sub">Analyze device traffic for anomalies</div>
+              </div>
+              <i class="fas fa-chevron-right qa-arrow"></i>
+            </a>
+            <a href="{{ url_for('history') }}" class="qa-btn">
+              <div class="qa-icon" style="background:rgba(0,229,160,0.1);color:var(--green)"><i class="fas fa-history"></i></div>
+              <div class="qa-info">
+                <div class="qa-title">View Prediction History</div>
+                <div class="qa-sub">Browse all past analysis results</div>
+              </div>
+              <i class="fas fa-chevron-right qa-arrow"></i>
+            </a>
+            <div class="qa-btn" style="opacity:0.5;cursor:default">
+              <div class="qa-icon" style="background:rgba(255,159,10,0.1);color:var(--orange)"><i class="fas fa-bell"></i></div>
+              <div class="qa-info">
+                <div class="qa-title">Alerts & Notifications</div>
+                <div class="qa-sub">Coming soon</div>
+              </div>
+            </div>
+            <div class="qa-btn" style="opacity:0.5;cursor:default">
+              <div class="qa-icon" style="background:rgba(255,45,85,0.1);color:var(--red)"><i class="fas fa-file-alt"></i></div>
+              <div class="qa-info">
+                <div class="qa-title">Export Security Report</div>
+                <div class="qa-sub">Coming soon</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

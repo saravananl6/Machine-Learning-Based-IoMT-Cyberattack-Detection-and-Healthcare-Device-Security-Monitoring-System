@@ -1,0 +1,449 @@
+{% extends "base.html" %}
+{% block title %}Predict — IoMT Shield{% endblock %}
+{% block extra_head %}
+<style>
+.page{padding:2.5rem 2rem}
+.max-w{max-width:1100px;margin:0 auto}
+.page-header{margin-bottom:2rem}
+.page-header h1{font-family:'Space Mono',monospace;font-size:1.8rem;font-weight:700}
+.page-header h1 span{color:var(--accent)}
+.page-header p{color:var(--text2);margin-top:4px}
+
+.predict-layout{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start}
+
+/* FORM PANEL */
+.form-panel{background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;position:sticky;top:80px}
+.form-panel-head{padding:1.3rem 1.8rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.form-panel-head h2{font-size:1rem;font-weight:700}
+.form-panel-head i{color:var(--accent)}
+.form-body{padding:1.5rem}
+
+.device-select{width:100%;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:0.95rem;font-family:'Outfit',sans-serif;transition:all 0.2s;outline:none;cursor:pointer;margin-bottom:1.2rem;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234a7a9b' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:40px}
+.device-select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,255,0.1)}
+.device-select option{background:var(--bg2);color:var(--text)}
+
+.form-label{display:block;font-size:0.78rem;font-weight:600;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px}
+
+.params-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;margin-bottom:1rem}
+.param-group{display:flex;flex-direction:column}
+.param-input{width:100%;padding:9px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.88rem;font-family:'Outfit',sans-serif;transition:all 0.2s;outline:none}
+.param-input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,212,255,0.1)}
+.param-input::placeholder{color:var(--text3)}
+
+.section-divider{font-size:0.78rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:1rem 0 0.8rem;display:flex;align-items:center;gap:8px}
+.section-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.btn-predict{width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:12px;color:#000;font-size:1rem;font-weight:700;cursor:pointer;transition:all 0.3s;font-family:'Outfit',sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:1rem}
+.btn-predict:hover{box-shadow:0 0 30px rgba(0,212,255,0.5);transform:translateY(-1px)}
+.btn-predict:disabled{opacity:0.6;cursor:not-allowed;transform:none}
+
+/* RESULT PANEL */
+.result-panel{display:flex;flex-direction:column;gap:1.5rem}
+.result-placeholder{background:var(--card);border:1px dashed var(--border);border-radius:20px;padding:4rem 2rem;text-align:center;color:var(--text3)}
+.result-placeholder i{font-size:3rem;margin-bottom:1rem;display:block;opacity:0.4}
+
+.result-card{background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;animation:fadeInUp 0.5s ease}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.result-head{padding:1.3rem 1.8rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.result-head h2{font-size:1rem;font-weight:700;display:flex;align-items:center;gap:8px}
+.result-body{padding:1.8rem}
+
+/* GAUGE */
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:1.5rem}
+.gauge-svg-wrap{display:block;width:260px;height:auto}
+
+.attack-result{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:1.5rem}
+.attack-name{font-family:'Space Mono',monospace;font-size:1.6rem;font-weight:700}
+.attack-badge{padding:6px 14px;border-radius:50px;font-size:0.82rem;font-weight:700;border:1px solid}
+
+/* RECOMMENDATIONS */
+.rec-card{background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+.rec-tabs{display:flex;border-bottom:1px solid var(--border)}
+.rec-tab{flex:1;padding:12px;text-align:center;font-size:0.85rem;font-weight:600;cursor:pointer;color:var(--text3);transition:all 0.2s;border:none;background:none;font-family:'Outfit',sans-serif}
+.rec-tab.active{color:var(--accent);border-bottom:2px solid var(--accent)}
+.rec-tab:hover{color:var(--text)}
+.rec-content{display:none;padding:1.5rem}
+.rec-content.active{display:block}
+.rec-desc{color:var(--text2);font-size:0.9rem;line-height:1.7;margin-bottom:1.2rem;padding:12px;background:rgba(0,212,255,0.04);border-left:3px solid var(--accent);border-radius:0 8px 8px 0}
+.rec-list{display:flex;flex-direction:column;gap:8px}
+.rec-item{display:flex;align-items:flex-start;gap:10px;font-size:0.88rem;color:var(--text2);line-height:1.5}
+.rec-item i{margin-top:2px;flex-shrink:0;font-size:0.8rem}
+
+.spinner{width:20px;height:20px;border:2px solid rgba(0,0,0,0.3);border-top-color:#000;border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.sample-btn{margin-top:8px;padding:7px 14px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.25);border-radius:8px;color:var(--accent);font-size:0.82rem;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;transition:all 0.2s;width:100%}
+.sample-btn:hover{background:rgba(0,212,255,0.15)}
+
+@media(max-width:900px){.predict-layout{grid-template-columns:1fr}.form-panel{position:static}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page">
+<div class="max-w">
+  <div class="page-header">
+    <h1>Attack <span>Prediction</span></h1>
+    <p>Select a medical device and enter network parameters to analyze for threats</p>
+  </div>
+
+  <div class="predict-layout">
+    <!-- INPUT FORM -->
+    <div class="form-panel">
+      <div class="form-panel-head">
+        <i class="fas fa-sliders-h"></i>
+        <h2>Network Parameters</h2>
+      </div>
+      <div class="form-body">
+        <label class="form-label">Medical Device Type</label>
+        <select class="device-select" id="deviceSelect">
+          <option value="">-- Select Device --</option>
+          <option value="1">ECG Monitor (Electrocardiograph)</option>
+          <option value="2">Blood Pressure Monitor</option>
+          <option value="3">Pulse Oximeter (SpO₂ Sensor)</option>
+          <option value="4">Insulin Pump</option>
+          <option value="5">Mechanical Ventilator</option>
+          <option value="6">Smart Infusion Pump</option>
+        </select>
+
+        <button class="sample-btn" onclick="fillSample()" id="sampleBtn" style="display:none">
+          <i class="fas fa-magic"></i> Auto-fill Sample Parameters
+        </button>
+
+        <div class="section-divider">Flow Parameters <i class="fas fa-wave-square"></i></div>
+        <div class="params-grid">
+          <div class="param-group">
+            <label class="form-label">Flow Duration (ms)</label>
+            <input class="param-input" id="flow_duration_ms" type="number" placeholder="3100"/>
+          </div>
+          <div class="param-group">
+            <label class="form-label">Packet Rate (pps)</label>
+            <input class="param-input" id="packet_rate" type="number" placeholder="52"/>
+          </div>
+          <div class="param-group">
+            <label class="form-label">Byte Rate (bps)</label>
+            <input class="param-input" id="byte_rate" type="number" placeholder="21000"/>
+          </div>
+          <div class="param-group">
+            <label class="form-label">Avg Packet Size</label>
+            <input class="param-input" id="avg_packet_size" type="number" placeholder="390"/>
+          </div>
+        </div>
+
+        <div class="section-divider">Statistical Metrics <i class="fas fa-chart-area"></i></div>
+        <div class="params-grid">
+          <div class="param-group">
+            <label class="form-label">Packet Size Variance</label>
+            <input class="param-input" id="packet_size_variance" type="number" placeholder="980"/>
+          </div>
+          <div class="param-group">
+            <label class="form-label">IAT Mean (ms)</label>
+            <input class="param-input" id="inter_arrival_time_mean" type="number" placeholder="21"/>
+          </div>
+          <div class="param-group">
+            <label class="form-label">IAT Std Dev</label>
+            <input class="param-input" id="inter_arrival_time_std" type="number" placeholder="4"/>
+          </div>
+          <div class="param-group">
+            <label class="form-label">Payload Entropy</label>
+            <input class="param-input" id="payload_entropy" type="number" step="0.1" placeholder="3.1"/>
+          </div>
+        </div>
+
+        <div class="section-divider">Network Behavior <i class="fas fa-network-wired"></i></div>
+        <div class="params-grid">
+          <div class="param-group">
+            <label class="form-label">TCP Flag Count</label>
+            <input class="param-input" id="tcp_flag_count" type="number" placeholder="6"/>
+          </div>
+          <div class="param-group">
+            <label class="form-label">Retransmission Rate</label>
+            <input class="param-input" id="retransmission_rate" type="number" step="0.01" placeholder="0.01"/>
+          </div>
+          <div class="param-group">
+            <label class="form-label">Flow Direction Ratio</label>
+            <input class="param-input" id="flow_direction_ratio" type="number" step="0.1" placeholder="1.2"/>
+          </div>
+          <div class="param-group">
+            <label class="form-label">Connection Resets</label>
+            <input class="param-input" id="connection_reset_count" type="number" placeholder="0"/>
+          </div>
+          <div class="param-group">
+            <label class="form-label">Session Request Rate</label>
+            <input class="param-input" id="session_request_rate" type="number" placeholder="5"/>
+          </div>
+        </div>
+
+        <button class="btn-predict" id="predictBtn" onclick="runPrediction()">
+          <i class="fas fa-brain"></i> Analyze Traffic
+        </button>
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="result-panel" id="resultPanel">
+      <div class="result-placeholder" id="placeholder">
+        <i class="fas fa-shield-alt"></i>
+        <p style="font-size:1rem;font-weight:600;margin-bottom:6px">Awaiting Analysis</p>
+        <p style="font-size:0.88rem">Select a device, enter parameters,<br>and click Analyze Traffic</p>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const deviceSelect = document.getElementById('deviceSelect');
+const sampleBtn = document.getElementById('sampleBtn');
+
+deviceSelect.addEventListener('change', () => {
+  sampleBtn.style.display = deviceSelect.value ? 'block' : 'none';
+});
+
+const samples = {
+  "1": {flow_duration_ms:3100,packet_rate:52,byte_rate:21000,avg_packet_size:390,packet_size_variance:980,inter_arrival_time_mean:21,inter_arrival_time_std:4,payload_entropy:3.1,tcp_flag_count:6,retransmission_rate:0.01,flow_direction_ratio:1.2,connection_reset_count:0,session_request_rate:5},
+  "2": {flow_duration_ms:2500,packet_rate:30,byte_rate:12000,avg_packet_size:320,packet_size_variance:500,inter_arrival_time_mean:35,inter_arrival_time_std:6,payload_entropy:3.4,tcp_flag_count:4,retransmission_rate:0.005,flow_direction_ratio:1.0,connection_reset_count:0,session_request_rate:3},
+  "3": {flow_duration_ms:1800,packet_rate:18,byte_rate:7200,avg_packet_size:280,packet_size_variance:300,inter_arrival_time_mean:55,inter_arrival_time_std:8,payload_entropy:2.9,tcp_flag_count:3,retransmission_rate:0.003,flow_direction_ratio:0.9,connection_reset_count:0,session_request_rate:2},
+  "4": {flow_duration_ms:4200,packet_rate:65,byte_rate:28000,avg_packet_size:420,packet_size_variance:1200,inter_arrival_time_mean:15,inter_arrival_time_std:3,payload_entropy:3.6,tcp_flag_count:8,retransmission_rate:0.02,flow_direction_ratio:1.4,connection_reset_count:1,session_request_rate:7},
+  "5": {flow_duration_ms:5000,packet_rate:85,byte_rate:36000,avg_packet_size:450,packet_size_variance:1500,inter_arrival_time_mean:12,inter_arrival_time_std:2,payload_entropy:3.8,tcp_flag_count:10,retransmission_rate:0.008,flow_direction_ratio:1.6,connection_reset_count:0,session_request_rate:9},
+  "6": {flow_duration_ms:3600,packet_rate:45,byte_rate:18000,avg_packet_size:360,packet_size_variance:800,inter_arrival_time_mean:22,inter_arrival_time_std:5,payload_entropy:3.2,tcp_flag_count:5,retransmission_rate:0.012,flow_direction_ratio:1.1,connection_reset_count:0,session_request_rate:4}
+};
+
+function fillSample() {
+  const s = samples[deviceSelect.value];
+  if (!s) return;
+  for (const [k, v] of Object.entries(s)) {
+    const el = document.getElementById(k);
+    if (el) el.value = v;
+  }
+}
+
+function buildGauge(score, color, levelLabel) {
+  // SVG canvas: 260 wide, 200 tall. Arc center at (130, 150), radius 110.
+  // Arc sweeps from 180° (left) to 0° (right) — top semicircle with center near bottom.
+  const cx = 130, cy = 150, r = 110;
+
+  // Arc endpoints (left = 180°, right = 0°)
+  const sx = cx - r, sy = cy;   // leftmost point
+  const ex = cx + r, ey = cy;   // rightmost point
+
+  // Filled arc endpoint based on score
+  const filled = score / 100;
+  const fillAngle = Math.PI - filled * Math.PI; // goes from π (left) toward 0 (right)
+  const fx = cx + r * Math.cos(fillAngle);
+  const fy = cy + r * Math.sin(fillAngle) * -1; // flip Y so arc goes UP
+  // Recalculate properly: angle from left (180°) sweeping counterclockwise to score position
+  // In SVG coords: 0° = right, angles increase clockwise
+  // We want a half-circle arc from left to right along the TOP
+  // Start angle 180° (left), sweep CW to 0° (right) = full semicircle top
+  // Score arc: from 180° sweeping CW by (score/100 * 180°)
+  const startDeg = 180;
+  const sweepDeg = (score / 100) * 180;
+  const endDeg = startDeg - sweepDeg; // subtract because we go counter-clockwise in standard math
+
+  function polar(deg) {
+    const rad = (deg * Math.PI) / 180;
+    return {
+      x: cx + r * Math.cos(rad),
+      y: cy - r * Math.sin(rad)   // subtract because SVG Y is flipped
+    };
+  }
+
+  const start = polar(180);  // left point
+  const end   = polar(0);    // right point
+  const tip   = polar(endDeg);
+
+  const trackPath = `M ${start.x} ${start.y} A ${r} ${r} 0 1 1 ${end.x} ${end.y}`;
+  const largeFill = sweepDeg > 180 ? 1 : 0;
+  const fillPath  = sweepDeg > 0
+    ? `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeFill} 1 ${tip.x} ${tip.y}`
+    : '';
+
+  const ticks = [0, 25, 50, 75, 100].map(v => {
+    const inner = polar(180 - v * 1.8);
+    const outer = polar(180 - v * 1.8);
+    const ri = r - 16, ro = r - 4;
+    const p1 = { x: cx + ri * Math.cos((180 - v*1.8) * Math.PI/180), y: cy - ri * Math.sin((180 - v*1.8) * Math.PI/180) };
+    const p2 = { x: cx + ro * Math.cos((180 - v*1.8) * Math.PI/180), y: cy - ro * Math.sin((180 - v*1.8) * Math.PI/180) };
+    return `<line x1="${p1.x.toFixed(2)}" y1="${p1.y.toFixed(2)}" x2="${p2.x.toFixed(2)}" y2="${p2.y.toFixed(2)}" stroke="#2a4060" stroke-width="2" stroke-linecap="round"/>`;
+  }).join('');
+
+  // Score arc circumference for stroke-dasharray animation
+  const arcLen = Math.PI * r; // half circumference
+  const fillLen = (score / 100) * arcLen;
+
+  return `<svg viewBox="0 0 260 165" width="260" height="165" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="gFill" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#00e5a0"/>
+        <stop offset="50%" stop-color="#ff9f0a"/>
+        <stop offset="100%" stop-color="#ff2d55"/>
+      </linearGradient>
+      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur stdDeviation="3" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <filter id="glowStrong" x="-30%" y="-30%" width="160%" height="160%">
+        <feGaussianBlur stdDeviation="5" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+
+    <!-- Track arc -->
+    <path d="${trackPath}" fill="none" stroke="#1a2e4a" stroke-width="16" stroke-linecap="round"/>
+
+    <!-- Filled arc with animation -->
+    ${fillPath ? `<path d="${fillPath}" fill="none" stroke="url(#gFill)" stroke-width="16" stroke-linecap="round" filter="url(#glow)"
+      stroke-dasharray="${fillLen.toFixed(1)} ${arcLen.toFixed(1)}"
+      stroke-dashoffset="0">
+      <animate attributeName="stroke-dasharray" from="0 ${arcLen.toFixed(1)}" to="${fillLen.toFixed(1)} ${arcLen.toFixed(1)}" dur="1.2s" ease="ease-out" fill="freeze"/>
+    </path>` : ''}
+
+    <!-- Tick marks -->
+    ${ticks}
+
+    <!-- Tip dot -->
+    ${sweepDeg > 0 ? `<circle cx="${tip.x.toFixed(2)}" cy="${tip.y.toFixed(2)}" r="8" fill="${color}" filter="url(#glowStrong)"/>
+    <circle cx="${tip.x.toFixed(2)}" cy="${tip.y.toFixed(2)}" r="4" fill="white"/>` : ''}
+
+    <!-- Center score text — placed INSIDE the arc's open space -->
+    <text x="${cx}" y="${cy - 8}" text-anchor="middle" font-family="'Space Mono', monospace" font-size="40" font-weight="700" fill="${color}">${score}</text>
+    <text x="${cx}" y="${cy + 16}" text-anchor="middle" font-family="'Outfit', sans-serif" font-size="13" font-weight="600" fill="${color}" letter-spacing="1">${levelLabel.toUpperCase()}</text>
+    <text x="${cx}" y="${cy + 34}" text-anchor="middle" font-family="'Outfit', sans-serif" font-size="11" fill="#4a7a9b">RISK SCORE</text>
+
+    <!-- Scale labels -->
+    <text x="${start.x - 6}" y="${cy + 18}" text-anchor="end" font-family="'Outfit',sans-serif" font-size="11" fill="#2a4060">0</text>
+    <text x="${end.x + 6}" y="${cy + 18}" text-anchor="start" font-family="'Outfit',sans-serif" font-size="11" fill="#2a4060">100</text>
+  </svg>`;
+}
+
+const attackColors = {
+  "Normal":"#00e5a0", "DoS":"#ff2d55", "MITM":"#ff2d55",
+  "Replay":"#ff9f0a", "Spoofing":"#ff9f0a", "Data Falsification":"#ffd60a"
+};
+const attackIcons = {
+  "Normal":"fa-check-circle", "DoS":"fa-bomb", "MITM":"fa-user-secret",
+  "Replay":"fa-redo", "Spoofing":"fa-mask", "Data Falsification":"fa-database"
+};
+
+async function runPrediction() {
+  const device = deviceSelect.value;
+  if (!device) { alert('Please select a medical device first.'); return; }
+  const fields = ['flow_duration_ms','packet_rate','byte_rate','avg_packet_size','packet_size_variance','inter_arrival_time_mean','inter_arrival_time_std','payload_entropy','tcp_flag_count','retransmission_rate','flow_direction_ratio','connection_reset_count','session_request_rate'];
+  const body = {device_type: parseInt(device)};
+  for (const f of fields) {
+    const el = document.getElementById(f);
+    const val = parseFloat(el?.value);
+    if (!el?.value || isNaN(val)) { alert(`Please fill in "${el?.labels?.[0]?.textContent || f}"`); return; }
+    body[f] = val;
+  }
+
+  const btn = document.getElementById('predictBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Analyzing...';
+
+  try {
+    const res = await fetch('/predict', {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error('Prediction failed');
+    renderResult(data, body);
+  } catch(e) {
+    alert('Error running prediction. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-brain"></i> Analyze Traffic';
+  }
+}
+
+function renderResult(data, inputs) {
+  const {attack, risk, recommendations} = data;
+  const col = risk.color;
+  const icon = attackIcons[attack] || 'fa-question';
+
+  const levelClass = {
+    'Safe':'safe','Critical':'critical','High':'high','Medium':'medium'
+  }[risk.level] || 'safe';
+
+  const badgeStyles = {
+    safe:`color:#00e5a0;border-color:rgba(0,229,160,0.4);background:rgba(0,229,160,0.1)`,
+    critical:`color:#ff2d55;border-color:rgba(255,45,85,0.4);background:rgba(255,45,85,0.1)`,
+    high:`color:#ff9f0a;border-color:rgba(255,159,10,0.4);background:rgba(255,159,10,0.1)`,
+    medium:`color:#ffd60a;border-color:rgba(255,214,10,0.4);background:rgba(255,214,10,0.1)`
+  }[levelClass];
+
+  const actionItems = (recommendations.actions||[]).map(a=>
+    `<div class="rec-item"><i class="fas fa-arrow-right" style="color:var(--accent)"></i><span>${a}</span></div>`).join('');
+  const precautionItems = (recommendations.precautions||[]).map(a=>
+    `<div class="rec-item"><i class="fas fa-shield-alt" style="color:var(--green)"></i><span>${a}</span></div>`).join('');
+
+  const resultPanel = document.getElementById('resultPanel');
+  resultPanel.innerHTML = `
+  <div class="result-card" id="gaugeCard">
+    <div class="result-head">
+      <h2><i class="fas fa-tachometer-alt"></i> Risk Assessment</h2>
+      <a href="/history" style="font-size:0.82rem;color:var(--accent);text-decoration:none">View History →</a>
+    </div>
+    <div class="result-body">
+      <div class="attack-result">
+        <i class="fas ${icon}" style="font-size:1.8rem;color:${col}"></i>
+        <div>
+          <div class="attack-name" style="color:${col}">${attack}</div>
+          <div style="font-size:0.82rem;color:var(--text2);margin-top:2px">${attack === 'Normal' ? 'No threat detected' : 'Attack detected'}</div>
+        </div>
+        <span class="attack-badge" style="${badgeStyles}">${risk.level}</span>
+      </div>
+      <div class="gauge-wrap">
+        <div class="gauge-svg-wrap">
+          ${buildGauge(risk.score, col, risk.level)}
+        </div>
+      </div>
+      <!-- Score bars for all classes -->
+      <div style="margin-top:0.5rem">
+        <div style="font-size:0.78rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Class Risk Levels</div>
+        ${Object.entries({Normal:5,DoS:88,MITM:92,Replay:72,Spoofing:78,'Data Falsification':65}).map(([k,v])=>{
+          const c = {Normal:'#00e5a0',DoS:'#ff2d55',MITM:'#ff2d55',Replay:'#ff9f0a',Spoofing:'#ff9f0a','Data Falsification':'#ffd60a'}[k];
+          const active = k === attack;
+          return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">
+            <span style="width:110px;font-size:0.78rem;color:${active?c:'var(--text3)'};font-weight:${active?700:400}">${k}</span>
+            <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+              <div style="height:100%;width:${active?v:v*0.3}%;background:${c};border-radius:3px;transition:width 1s;opacity:${active?1:0.3}"></div>
+            </div>
+            <span style="font-size:0.78rem;color:${active?c:'var(--text3)'};font-weight:${active?700:400};width:28px;text-align:right">${v}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  </div>
+
+  <div class="rec-card">
+    <div style="padding:1.2rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+      <i class="fas fa-lightbulb" style="color:var(--accent)"></i>
+      <h2 style="font-size:1rem;font-weight:700">Recommendations & Precautions</h2>
+    </div>
+    <div style="padding:1.2rem 1.5rem;background:rgba(0,212,255,0.04);border-bottom:1px solid var(--border)">
+      <p style="color:var(--text2);font-size:0.9rem;line-height:1.7">${recommendations.desc}</p>
+    </div>
+    <div class="rec-tabs">
+      <button class="rec-tab active" onclick="switchTab(this,'actions')"><i class="fas fa-tasks"></i> Immediate Actions</button>
+      <button class="rec-tab" onclick="switchTab(this,'precautions')"><i class="fas fa-shield-alt"></i> Precautions</button>
+    </div>
+    <div id="actions" class="rec-content active">
+      <div class="rec-list">${actionItems}</div>
+    </div>
+    <div id="precautions" class="rec-content">
+      <div class="rec-list">${precautionItems}</div>
+    </div>
+  </div>`;
+}
+
+function switchTab(btn, id) {
+  document.querySelectorAll('.rec-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.rec-content').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+</script>
+{% endblock %}
